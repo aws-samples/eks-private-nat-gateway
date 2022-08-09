@@ -1,0 +1,40 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: awslb-recommender
+spec:
+  controller: ingress.k8s.aws/alb  
+  
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-recommender
+  namespace: recommender
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: eks-alb-internet
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/healthcheck-path: /live
+    alb.ingress.kubernetes.io/group.order: "10"
+spec:
+  ingressClassName: awslb-recommender
+  rules:
+    - http:
+        paths:
+          - path: /data
+            pathType: Prefix
+            backend:
+              service:
+                name: recommender-svc
+                port:
+                  number: 80                           
+          - path: /time
+            pathType: Prefix
+            backend:
+              service:
+                name: recommender-svc
+                port:
+                  number: 80                                 
+                  

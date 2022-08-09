@@ -1,0 +1,89 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EKS cluster'
+
+Parameters:
+  VPCStackName:
+    Description: The name of the CloudFormation stack with which the VPC was created
+    Type: String
+    Default: ""
+
+  ClusterName:
+    Description: EKS cluster name
+    Type: String
+    Default: ""
+
+  ClusterVersion:
+    Description: Kubernetes version of the EKS cluster
+    Type: String
+    Default: "1.22"
+    AllowedValues:
+    - "1.20"
+    - "1.21"
+    - "1.22"
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Cluster Configuration"
+        Parameters:
+          - ClusterName
+          - ClusterVersion
+          - ClusterRole
+
+Resources:
+  EKSClusterRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+        - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      Version: !Ref ClusterVersion
+      ResourcesVpcConfig:
+        EndpointPrivateAccess: False
+        EndpointPublicAccess: True
+        SubnetIds:
+          - Fn::ImportValue: !Sub ${VPCStackName}-CLUSTER-SUBNET01
+          - Fn::ImportValue: !Sub ${VPCStackName}-CLUSTER-SUBNET02
+
+Outputs:
+  ClusterName:
+    Description: Name of the EKS Cluster
+    Value: !Ref ClusterName
+    Export:
+      Name: !Sub "${AWS::StackName}-CLUSTER-NAME"   
+
+  ClusterEndpoint:
+    Description: API endpoint of the EKS Cluster
+    Value: !GetAtt EKSCluster.Endpoint
+    Export:
+      Name: !Sub "${AWS::StackName}-CLUSTER-ENDPOINT"  
+
+  ClusterSecurityGroup:
+    Description: Security group to allow communication between the control plane and managed worker nodegroups
+    Value: !GetAtt EKSCluster.ClusterSecurityGroupId
+    Export:
+      Name: !Sub "${AWS::StackName}-CLUSTER-SECURITY-GROUP"   
+
+  ClusterCertificateAuthority:
+    Description: Certificate Authority certificate for the EKS Cluster
+    Value: !GetAtt EKSCluster.CertificateAuthorityData      

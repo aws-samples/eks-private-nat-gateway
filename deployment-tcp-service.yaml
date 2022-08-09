@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: time-service
+  namespace: tcp-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: time-service
+      role: tcp-server
+  template:
+    metadata:
+      labels:
+        app: time-service
+        role: tcp-server      
+    spec: 
+      containers:          
+        - name: java
+          image: public.ecr.aws/awsvijisarathy/tcp-service-eks-private-nat:1.0
+          imagePullPolicy: Always   
+          resources:
+            requests:
+              cpu: "128m"
+              memory: "512Mi"
+            limits:
+              cpu: "128m"
+              memory: "1024Mi"            
+          env:
+            - name: PORT
+              value: "80"
+          ports:
+            - containerPort: 80
+              name: tcp 
+              protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: time-service-svc
+  namespace: tcp-services
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-name: "eks-nlb-internal"
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"    
+spec:
+  sessionAffinity: None
+  type: LoadBalancer  
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+      app: time-service
+      role: tcp-server

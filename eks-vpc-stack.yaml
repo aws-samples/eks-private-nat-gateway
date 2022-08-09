@@ -1,0 +1,652 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'VPC with a routable and non-routable CIDR to be used to host a AWS Managed Kubernetes cluster'
+
+Parameters:
+
+  VpcBlock:
+    Type: String
+    Default: 192.168.16.0/20
+    Description: The CIDR range for the VPC. This should be a valid private (RFC 1918) CIDR range.
+
+  PeerVpcBlock:
+    Type: String
+    Default: 192.168.32.0/20
+    Description: The CIDR range for a peer VPC. This should be a valid private (RFC 1918) CIDR range.
+
+  VpcName:
+    Type: String
+    Default: "EKS-PRODUCTION-VPC"
+    Description: Unique name for the VPC
+
+  Subnet01Block:
+    Type: String
+    Default: 192.168.16.0/24
+    Description: CIDR Block for public subnet 01 
+
+  Subnet02Block:
+    Type: String
+    Default: 192.168.17.0/24
+    Description: CIDR Block for public subnet 02 
+
+  Subnet01PrivateBlock:
+    Type: String
+    Default: 192.168.18.0/24
+    Description: CIDR Block for private subnet 01 
+
+  Subnet02PrivateBlock:
+    Type: String
+    Default: 192.168.19.0/24
+    Description: CIDR Block for private subnet 02 
+
+  VpcSecondaryBlock:
+    Type: String
+    Default: 100.64.0.0/16
+    Description: Secondary CIDR range for the VPC.
+
+  Subnet01ClusterBlock:
+    Type: String
+    Default: 100.64.1.0/28
+    Description: CIDR Block for cluster subnet 01 
+
+  Subnet02ClusterBlock:
+    Type: String
+    Default: 100.64.2.0/28
+    Description: CIDR Block for cluster subnet 02
+
+  Subnet01PrivateSecondaryBlock:
+    Type: String
+    Default: 100.64.16.0/20
+    Description: CIDR Block for private secondary (non-routable) subnet 01 within the VPC
+
+  Subnet02PrivateSecondaryBlock:
+    Type: String
+    Default: 100.64.32.0/20
+    Description: CIDR Block for private secondary (non-routable) subnet 02 within the VPC
+
+  Subnet01Name:
+    Type: String
+    Default: "PUBLIC-1"
+    Description: Name for public subnet 01
+
+  Subnet02Name:
+    Type: String
+    Default: "PUBLIC-2"
+    Description: Name for public subnet 02 
+
+  Subnet01PrivateName:
+    Type: String
+    Default: "PRIVATE-1"
+    Description: Name for private subnet 01  
+
+  Subnet02PrivateName:
+    Type: String
+    Default: "PRIVATE-2"
+    Description: Name for private subnet 02   
+
+  Subnet01ClusterName:
+    Type: String
+    Default: "PRIVATE-CLUSTER-SECONDARY-1"
+    Description: Name for private subnet 01  
+
+  Subnet02ClusterName:
+    Type: String
+    Default: "PRIVATE-CLUSTER-SECONDARY-2"
+    Description: Name for private subnet 02 
+
+  Subnet01PrivateSecondaryName:
+    Type: String
+    Default: "PRIVATE-WORKER-SECONDARY-1"
+    Description: Name for private secondary (non-routable) subnet 01  
+
+  Subnet02PrivateSecondaryName:
+    Type: String
+    Default: "PRIVATE-WORKER-SECONDARY-2"
+    Description: Name for private secondary (non-routable) subnet 02        
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Primary Network Configuration"
+        Parameters:
+          - VpcBlock
+          - VpcName
+          - Subnet01Block
+          - Subnet01Name
+          - Subnet02Block          
+          - Subnet02Name
+          - Subnet01PrivateBlock
+          - Subnet01PrivateName
+          - Subnet02PrivateBlock          
+          - Subnet02PrivateName
+      -
+        Label:
+          default: "Secondary Network Configuration"
+        Parameters:
+          - VpcSecondaryBlock
+          - Subnet01PrivateSecondaryBlock
+          - Subnet01PrivateSecondaryName
+          - Subnet02PrivateSecondaryBlock          
+          - Subnet02PrivateSecondaryName             
+
+      -
+        Label:
+          default: "Cluster Network Configuration"
+        Parameters:
+          - Subnet01ClusterBlock
+          - Subnet01ClusterName
+          - Subnet02ClusterBlock          
+          - Subnet02ClusterName               
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Ref VpcName
+
+  VpcCidrBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref VpcSecondaryBlock         
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'IGW'] ]
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'PUBLIC-ROUTE-TABLE'] ]
+      - Key: Network
+        Value: Public
+
+  Route:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  Subnet01:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Public Subnet 01
+    Properties:
+      #
+      # Note that MapPublicIpOnLaunch needs to be set to true only if you are launching worker nodes in the public subnet
+      #    
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+        - '0'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet01Block
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet01Name] ]
+      - Key: kubernetes.io/role/elb
+        Value: 1       
+
+  Subnet02:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Public Subnet 02
+    Properties:
+      #
+      # Note that MapPublicIpOnLaunch needs to be set to true only if you are launching worker nodes in the public subnet
+      #
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+        - '1'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet02Block
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet02Name] ]
+      - Key: kubernetes.io/role/elb
+        Value: 1  
+
+  Subnet01Private:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Private Subnet 01
+    Properties:
+      MapPublicIpOnLaunch: false    
+      AvailabilityZone:
+        Fn::Select:
+        - '0'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet01PrivateBlock
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet01PrivateName] ]
+      - Key: kubernetes.io/role/internal-elb
+        Value: 1  
+
+  Subnet02Private:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Private Subnet 02
+    Properties:
+      MapPublicIpOnLaunch: false    
+      AvailabilityZone:
+        Fn::Select:
+        - '1'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet02PrivateBlock
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet02PrivateName] ]
+      - Key: kubernetes.io/role/internal-elb
+        Value: 1  
+
+  Subnet01Cluster:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Cluster Subnet 01
+    Properties:
+      MapPublicIpOnLaunch: false    
+      AvailabilityZone:
+        Fn::Select:
+        - '0'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet01ClusterBlock
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet01ClusterName] ]
+
+  Subnet02Cluster:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Cluster Subnet 02
+    Properties:
+      MapPublicIpOnLaunch: false    
+      AvailabilityZone:
+        Fn::Select:
+        - '1'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet02ClusterBlock
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet02ClusterName] ]
+
+  Subnet01PrivateSecondary:
+    DependsOn: VpcCidrBlock
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Private Subnet Secondary 01
+    Properties:
+      MapPublicIpOnLaunch: false    
+      AvailabilityZone:
+        Fn::Select:
+        - '0'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet01PrivateSecondaryBlock
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet01PrivateSecondaryName] ]
+
+  Subnet02PrivateSecondary:
+    DependsOn: VpcCidrBlock
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Private Subnet Secondary 02
+    Properties:
+      MapPublicIpOnLaunch: false    
+      AvailabilityZone:
+        Fn::Select:
+        - '1'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet02PrivateSecondaryBlock
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, !Ref Subnet02PrivateSecondaryName] ]
+
+  NATGateway1EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NATGateway2EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NATGateway1:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - 'NATGateway1EIP'
+        - 'AllocationId'
+      SubnetId: !Ref Subnet01
+      ConnectivityType: public
+      Tags: 
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'NAT-GATEWAY-PUBLIC-1'] ]
+      
+  NATGateway2:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - 'NATGateway2EIP'
+        - 'AllocationId'
+      SubnetId: !Ref Subnet02
+      ConnectivityType: public
+      Tags: 
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'NAT-GATEWAY-PUBLIC-2'] ]
+
+  PrivateNATGateway1:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref Subnet01Private
+      ConnectivityType: private
+      Tags: 
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'NAT-GATEWAY-PRIVATE-1'] ]
+      
+  PrivateNATGateway2:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref Subnet02Private
+      ConnectivityType: private
+      Tags: 
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'NAT-GATEWAY-PRIVATE-2'] ]        
+
+  PrivateRouteTable01:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'PRIVATE-ROUTE-TABLE-01'] ]
+      - Key: Network
+        Value: Private
+
+  PrivateRoute01:
+    DependsOn: NATGateway1  
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable01
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway1
+
+  PrivateRouteTable02:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'PRIVATE-ROUTE-TABLE-02'] ]
+      - Key: Network
+        Value: Private
+
+  PrivateRoute02:
+    DependsOn: NATGateway2
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable02
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway2
+
+  PrivateRouteTableSecondary01:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'PRIVATE-ROUTE-TABLE-SECONDARY-01'] ]
+      - Key: Network
+        Value: Private
+
+  PrivateRouteSecondary011:
+    DependsOn: PrivateNATGateway1  
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableSecondary01
+      DestinationCidrBlock: !Ref PeerVpcBlock
+      NatGatewayId: !Ref PrivateNATGateway1          
+
+  PrivateRouteSecondary012:
+    DependsOn: PrivateNATGateway1  
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableSecondary01
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway1    
+
+  PrivateRouteTableSecondary02:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Join [ '-', [ !Ref VpcName, 'PRIVATE-ROUTE-TABLE-SECONDARY-02'] ]
+      - Key: Network
+        Value: Private
+
+  PrivateRouteSecondary021:
+    DependsOn: PrivateNATGateway2  
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableSecondary02
+      DestinationCidrBlock: !Ref PeerVpcBlock
+      NatGatewayId: !Ref PrivateNATGateway2
+
+  PrivateRouteSecondary022:
+    DependsOn: PrivateNATGateway2
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableSecondary02
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway2      
+
+  Subnet01RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet01
+      RouteTableId: !Ref RouteTable
+
+  Subnet02RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet02
+      RouteTableId: !Ref RouteTable
+
+  Subnet01PrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet01Private
+      RouteTableId: !Ref PrivateRouteTable01
+
+  Subnet02PrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet02Private
+      RouteTableId: !Ref PrivateRouteTable02
+
+  Subnet01PrivateSecondaryRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet01PrivateSecondary
+      RouteTableId: 
+      RouteTableId: !Ref PrivateRouteTableSecondary01
+
+  Subnet02PrivateSecondaryRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet02PrivateSecondary
+      RouteTableId: 
+      RouteTableId: !Ref PrivateRouteTableSecondary02
+
+  NLBIngressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group to allow NLB to forward traffic to EKS worker nodes
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: NLBIngressSecurityGroup  
+
+  NLBIngressSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NLBIngressSecurityGroup
+    Properties:
+      Description: Allow incoming traffic port 80
+      GroupId: !Ref NLBIngressSecurityGroup
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+
+  AuroraIngressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group to allow traffic into an Aurora PostgreSQL database
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: AuroraIngressSecurityGroup        
+
+  AuroraIngressSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: AuroraIngressSecurityGroup
+    Properties:
+      Description: Allow incoming traffic port 5432
+      GroupId: !Ref AuroraIngressSecurityGroup
+      CidrIp: 192.168.16.0/20
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+
+  AuroraIngressSecurityGroupIngress2:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: AuroraIngressSecurityGroup
+    Properties:
+      Description: Allow incoming traffic port 5432
+      GroupId: !Ref AuroraIngressSecurityGroup
+      CidrIp: 192.168.32.0/20
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432      
+
+Outputs:
+  NLBIngressSecurityGroup:
+    Description: Security group to allow NLB to forward traffic to EKS worker nodes
+    Value: !Ref NLBIngressSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-NLB-INGRESS-SECURITY-GROUP"   
+
+  AuroraIngressSecurityGroup:
+    Description: Security group to allow traffic into an Aurora PostgreSQL database
+    Value: !Ref AuroraIngressSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-AURORA-INGRESS-SECURITY-GROUP"         
+
+  DefaultSecurityGroup:
+    Description: Default security group associated with the VPC
+    Value: !GetAtt VPC.DefaultSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-DEFAULT-SECURITY-GROUP"    
+
+  VpcId:
+    Description: The VPC Id
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${AWS::StackName}-VPCID"  
+
+  VpcName:
+    Description: Name of the VPC
+    Value: !Ref VpcName
+    Export:
+      Name: !Sub "${AWS::StackName}-VPCNAME"     
+
+  PrivateSubnets:
+    Description: Private routable subnets in the VPC
+    Value: !Join [ ",", [ !Ref Subnet01Private, !Ref Subnet02Private ] ]    
+
+  PrivateSecondarySubnet01:
+    Description: Private secondary (non-routable) subnet 1
+    Value: !Ref Subnet01PrivateSecondary
+    Export:
+      Name: !Sub "${AWS::StackName}-WORKER-SUBNET01"
+
+  PrivateSecondarySubnet02:
+    Description: Private secondary (non-routable) subnet 2
+    Value: !Ref Subnet02PrivateSecondary
+    Export:
+      Name: !Sub "${AWS::StackName}-WORKER-SUBNET02"   
+
+  ClusterSubnet01:
+    Description: Cluster subnet 1
+    Value: !Ref Subnet01Cluster
+    Export:
+      Name: !Sub "${AWS::StackName}-CLUSTER-SUBNET01"
+
+  ClusterSubnet02:
+    Description: Cluster subnet 2
+    Value: !Ref Subnet02Cluster
+    Export:
+      Name: !Sub "${AWS::StackName}-CLUSTER-SUBNET02"  
+
