@@ -17,7 +17,7 @@ This directory contains software artifacts for implementing the networking archi
 
 #### Setting up the PostgreSQL database 
 4. Execute the script **postgres/setup.sh** to setup an Aurora PostgreSQL database instance in **EKS-VPC-B**
-5. Follow the instructions in the file [postgres/initialize.md](https://github.com/vijayansarathy/eks-private-nat/blob/main/postgres-setup/initialize.md) to initialize this database instance with tables and import sample data into it. The commands in this script should be executed from an EC2 instance that was launched in **EKS-VPC-B** in order to have access to the private endpoint of the database.
+5. Follow the instructions in the file [postgres/initialize.md](https://github.com/aws-samples/eks-private-nat-gateway/blob/main/postgres-setup/initialize.md) to initialize this database instance with tables and import sample data into it. The commands in this script should be executed from an EC2 instance that was launched in **EKS-VPC-B** in order to have access to the private endpoint of the database.
  
 #### Setting up the EKS clusters 
 6. Execute the script **cluster-a.sh** to launch an EKS cluster named **EKS-CLUSTER-A** into **EKS-VPC-A** and provision a managed node group.
