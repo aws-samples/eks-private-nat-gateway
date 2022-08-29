@@ -15,7 +15,7 @@ sudo amazon-linux-extras install postgresql10 -y
 ```
 
 
-Export the environmane variables in the **exports** file. Make sure to set a password with the variabe **DBPASSWORD** and also update the value of variable **DBHOST** to the endpoint URL of the Aurora PostgreSQL database.
+Export the environmane variables in the **exports** file. Make sure to set a password with the variable **DBPASSWORD** and also update the value of variable **DBHOST** to the endpoint URL of the Aurora PostgreSQL database.
 ```
 source exports
 ```
