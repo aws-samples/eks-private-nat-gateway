@@ -2,6 +2,6 @@ export DBHOST=XXXXXXXX
 export DBPORT=5432
 export DBMASTERUSER=postgres
 export DBROLE=eks
-export DBPASSWORD="'eks'"
+export DBPASSWORD="'XXXX'"
 export DBNAME=amazon
 export DBSCHEMA=analytics
