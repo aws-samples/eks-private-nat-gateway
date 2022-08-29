@@ -34,6 +34,12 @@ access to both clusters.
   - curl -X GET http://$ALB_DNS_NAME/data
   - curl -X GET http://$ALB_DNS_NAME/time
 
+#### Cleanup
+Please use the following scripts to cleanup the resources provisioned above.
+- Delete Aurora PostgreSQL database instance and the database subnet group using [postgres/cleanup.sh](https://github.com/aws-samples/eks-private-nat-gateway/blob/main/postgres-setup/setup.sh)
+- Delete the transit gateway using [cleanup-tgw.sh](https://github.com/aws-samples/eks-private-nat-gateway/blob/main/cleanup-tgw.sh)
+- Delete the EKS clusters using [cleanup-cluster.sh](https://github.com/aws-samples/eks-private-nat-gateway/blob/main/cleanup-cluster.sh)
+- Delete the VPCs using [cleanup-vpc.sh](https://github.com/aws-samples/eks-private-nat-gateway/blob/main/cleanup-vpc.sh)
 
 ## Security
 
