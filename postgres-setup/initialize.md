@@ -23,7 +23,7 @@ source exports
 Now, run the DDL and DML commands in the scripts **init-1.sh** and **init-2.sh**. This will setup the relevant database, schema, tables in the Aurora PostgreSQL database, instance.
 ```
 init-1.sh  # When prompted for password, enter 'postgres'
-init-2.sh  # When prompted for password, enter the password from **DBPASSWORD**
+init-2.sh  # When prompted for password, enter the password used for DBPASSWORD variable
 ```
 
 Now, import data into Postgres database. First login into the remote Aurora PostgreSQL instance using the **psql** utility you installed earlier. Then, run the **\copy** command from within the Postgres shell. If necessary, modify the path name of the CSV file you are using for the import
