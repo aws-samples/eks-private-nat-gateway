@@ -1,6 +1,6 @@
 ## Addressing IPv4 address Exhaustion in Amazon EKS Clusters using private NAT gateways
 
-This directory contains software artifacts for implementing the networking architecture discussed in this [blog](https://aws.amazon.com/blogs/containers/addressing-ipv4-address-exhaustion-in-amazon-eks-clusters-using-private-nat-gateways/) to deploy Amazon EKS clusters into VPCs wth overlapping CIDRs. It demonstrates a use case where workloads deployed in an EKS cluster provisioned in a VPC are made to communicate, using a private NAT gateway, with workloads deployed to another EKS cluster in a different VPC with overlapping CIDR ranges. 
+This repository contains software artifacts for implementing the networking architecture discussed in this [blog](https://aws.amazon.com/blogs/containers/addressing-ipv4-address-exhaustion-in-amazon-eks-clusters-using-private-nat-gateways/) to deploy Amazon EKS clusters into VPCs wth overlapping CIDRs. It demonstrates a use case where workloads deployed in an EKS cluster provisioned in a VPC are made to communicate, using a private NAT gateway, with workloads deployed to another EKS cluster in a different VPC with overlapping CIDR ranges. 
 
 ### Network architecture
 <img class="wp-image-1960 size-full" src="images/network-architecture.png" alt="Network architecture"/>
