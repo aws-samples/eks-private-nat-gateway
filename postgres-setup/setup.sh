@@ -14,6 +14,8 @@ DB_CLUSTER="aurora-eks-cluster"
 DB_INSTANCE="eks"
 DB_ENGINE="aurora-postgresql"
 DB_ENGINE_VERSION="10.18"
+DB_MASTER_USER="postgres"
+DB_MASTER_PASSWORD="@@@@"
 
 DB_SUBNET_GROUP_ARN=$(aws rds create-db-subnet-group \
 --db-subnet-group-name $DB_SUBNET_GROUP \
@@ -28,8 +30,8 @@ DB_CLUSTER_ARN=$(aws rds create-db-cluster \
 --engine $DB_ENGINE \
 --engine-version $DB_ENGINE_VERSION \
 --vpc-security-group-ids $SG_ID \
---master-username postgres \
---master-user-password postgres \
+--master-username $DB_MASTER_USER \
+--master-user-password $DB_MASTER_PASSWORD \
 --db-subnet-group-name $DB_SUBNET_GROUP \
 --availability-zone $ZONE \
 --query "DBCluster.DBClusterArn" --output text \
