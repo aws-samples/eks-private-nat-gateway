@@ -9,6 +9,9 @@ VPC_ID=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=$VPC_NAME Name=cid
 SG_ID=$(aws ec2 describe-security-groups --filters Name=tag:Name,Values=$SG_NAME Name=vpc-id,Values=$VPC_ID --query "SecurityGroups[].GroupId" --output text --region $REGION)
 PRIVATE_SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=tag-key,Values=kubernetes.io/role/internal-elb" "Name=vpc-id,Values=$VPC_ID" --query "Subnets[].SubnetId" --output text --region $REGION)
 
+#
+# Default values for variables used in setting up Postgres instance
+#
 DB_SUBNET_GROUP="eks-subnet-group"
 DB_CLUSTER="aurora-eks-cluster"
 DB_INSTANCE="eks"
