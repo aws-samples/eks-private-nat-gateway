@@ -22,7 +22,7 @@ source exports
 
 Now, run the DDL and DML commands in the scripts **init-1.sh** and **init-2.sh**. This will setup the relevant database, schema, tables in the Aurora PostgreSQL database, instance.
 ```
-init-1.sh  # When prompted for password, enter the master password used in setup.sh
+init-1.sh  # When prompted for password, enter the master password from DB_MASTER_PASSWORD set in setup.sh
 init-2.sh  # When prompted for password, enter the password used for DBPASSWORD variable
 ```
 
