@@ -18,7 +18,7 @@ DB_INSTANCE="eks"
 DB_ENGINE="aurora-postgresql"
 DB_ENGINE_VERSION="10.18"
 DB_MASTER_USER="postgres"          # Set master user
-DB_MASTER_PASSWORD="postgres"      # Set master password
+DB_MASTER_PASSWORD=""              # Set master password
 
 DB_SUBNET_GROUP_ARN=$(aws rds create-db-subnet-group \
 --db-subnet-group-name $DB_SUBNET_GROUP \
