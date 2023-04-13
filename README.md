@@ -16,7 +16,7 @@ This repository contains software artifacts for implementing the networking arch
 3. Execute the script **tgw.sh** to setup a transit gateway and transit gateway attachments in order to route traffic between the two VPCs. This script will also update the route tables associated with the transit gateway as well as the routable subnets in the two VPCs.
 
 #### Setting up the PostgreSQL database 
-4. Execute the script **postgres/setup.sh** to setup an Aurora PostgreSQL database instance in **EKS-VPC-B**
+4. Execute the script **postgres-setup/setup.sh** to setup an Aurora PostgreSQL database instance in **EKS-VPC-B**
 5. Follow the instructions in the file [postgres/initialize.md](https://github.com/aws-samples/eks-private-nat-gateway/blob/main/postgres-setup/initialize.md) to initialize this database instance with tables and import sample data into it. The commands in this script should be executed from an EC2 instance that was launched in **EKS-VPC-B** in order to have access to the private endpoint of the database.
  
 #### Setting up the EKS clusters 
