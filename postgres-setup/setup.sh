@@ -16,7 +16,7 @@ DB_SUBNET_GROUP="eks-subnet-group"
 DB_CLUSTER="aurora-eks-cluster"
 DB_INSTANCE="eks"
 DB_ENGINE="aurora-postgresql"
-DB_ENGINE_VERSION="10.18"
+DB_ENGINE_VERSION="11.9"
 DB_MASTER_USER="postgres"          # Set master user
 DB_MASTER_PASSWORD=""              # Set master password
 
